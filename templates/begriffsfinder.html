@@ -10,6 +10,7 @@
             <div class="form-group">
                 <label for="search_term">Suchbegriff:</label>
                 <input type="search" id="search_term" name="search_term" value="{{ search_term }}" required>
+                <ul id="suggestions-list" class="suggestions-list"></ul>
             </div>
             <button type="submit" class="btn">Suchen</button>
         </form>
@@ -21,4 +22,76 @@
         <p>{{ result }}</p>
     </div>
     {% endif %}
+
+<script>
+    const searchInput = document.getElementById('search_term');
+    const suggestionsList = document.getElementById('suggestions-list');
+
+    // Event-Listener für jede Tastatureingabe
+    searchInput.addEventListener('input', async function() {
+        const query = this.value;
+        if (query.length > 0) {
+            const response = await fetch(`/autocomplete_begriffe?q=${query}`);
+            const suggestions = await response.json();
+            
+            // Filtert den eingegebenen Begriff und den unerwünschten Begriff "Hilfsstrom" aus der Vorschlagsliste
+            const filteredSuggestions = suggestions.filter(suggestion => 
+                suggestion.toLowerCase() !== query.toLowerCase() && 
+                suggestion.toLowerCase() !== 'hilfsstrom'
+            );
+
+            displaySuggestions(filteredSuggestions);
+        } else {
+            clearSuggestions();
+        }
+    });
+
+    function displaySuggestions(suggestions) {
+        clearSuggestions();
+        if (suggestions.length > 0) {
+            suggestions.forEach(suggestion => {
+                const li = document.createElement('li');
+                li.textContent = suggestion;
+                li.addEventListener('click', () => {
+                    searchInput.value = suggestion;
+                    clearSuggestions();
+                });
+                suggestionsList.appendChild(li);
+            });
+            suggestionsList.style.display = 'block'; // Zeige die Liste an
+        }
+    }
+
+    function clearSuggestions() {
+        suggestionsList.innerHTML = '';
+        suggestionsList.style.display = 'none'; // Verstecke die Liste
+    }
+</script>
+
+<style>
+    .suggestions-list {
+        list-style-type: none;
+        padding: 0;
+        margin: 0.5rem 0 0 0;
+        background-color: var(--secondary-bg-color);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        display: none;
+        position: absolute;
+        z-index: 10;
+        width: calc(100% - 2rem);
+    }
+    .suggestions-list li {
+        padding: 0.75rem;
+        cursor: pointer;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .suggestions-list li:last-child {
+        border-bottom: none;
+    }
+    .suggestions-list li:hover {
+        background-color: var(--primary-bg-color);
+    }
+</style>
 {% endblock %}

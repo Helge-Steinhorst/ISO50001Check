@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash, send_file
+from flask import Flask, render_template, request, redirect, url_for, flash, send_file, jsonify
 from flask_sqlalchemy import SQLAlchemy
 import pandas as pd
 from datetime import datetime, date, timedelta, time
@@ -15,7 +15,7 @@ from io import BytesIO
 # --- App Konfiguration ---
 app = Flask(__name__)
 # Ein geheimer Schlüssel ist für Flash-Nachrichten und Sessions erforderlich
-app.config['SECRET_KEY'] = 'dein_super_geheimer_schluessel_12345' 
+app.config['SECRET_KEY'] = 'dein_super_geheimer_schluessel_12345'
 basedir = os.path.abspath(os.path.dirname(__file__))
 # Konfiguration für die SQLite-Datenbank
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'zeiterfassung.db')
@@ -51,7 +51,7 @@ class TimeEntry(db.Model):
         hours, remainder = divmod(total_seconds, 3600)
         minutes, _ = divmod(remainder, 60)
         return f"{int(hours):02}:{int(minutes):02}"
-        
+
 # --- Kontext-Prozessor, um `now` in allen Templates verfügbar zu machen ---
 @app.context_processor
 def inject_now():
@@ -77,15 +77,15 @@ def begriffsfinder():
         else:
             try:
                 # Lade die Excel-Datei. header=None, da wir Spalten per Index ansprechen
-                df = pd.read_excel('begriffe.xlsx', header=None)
-                
+                df = pd.read_excel('Daten.xlsx', header=None)
+
                 # Suche ab Zeile 14 (Index 13) in Spalte D (Index 3)
                 # .iloc[13:] wählt alle Zeilen ab Index 13 aus
                 search_area = df.iloc[13:]
-                
+
                 # Suche nach exakter Übereinstimmung (Groß-/Kleinschreibung ignorieren)
                 match = search_area[search_area[3].astype(str).str.lower() == search_term.lower()]
-                
+
                 if not match.empty:
                     # Nimm den ersten Treffer und die Erklärung aus Spalte H (Index 7)
                     explanation = match.iloc[0, 7]
@@ -93,11 +93,33 @@ def begriffsfinder():
                 else:
                     result = "Begriff nicht gefunden."
             except FileNotFoundError:
-                result = "Fehler: Die Datei 'begriffe.xlsx' wurde nicht im Hauptverzeichnis gefunden."
+                result = "Fehler: Die Datei 'Daten.xlsx' wurde nicht im Hauptverzeichnis gefunden."
             except Exception as e:
                 result = f"Ein unerwarteter Fehler ist aufgetreten: {e}"
-            
+
     return render_template('begriffsfinder.html', search_term=search_term, result=result)
+
+@app.route('/autocomplete_begriffe')
+def autocomplete_begriffe():
+    """Liefert Suchvorschläge für den Begriffsfinder."""
+    query = request.args.get('q', '').lower()
+    suggestions = []
+
+    if query:
+        try:
+            df = pd.read_excel('Daten.xlsx', header=None)
+            # Suche in Spalte D (Index 3) nach Begriffen, die mit der Eingabe beginnen
+            matching_terms = df[df[3].astype(str).str.lower().str.startswith(query)].iloc[:, 3].unique()
+            suggestions = matching_terms.tolist()
+            # Beschränke die Anzahl der Vorschläge, um die Performance zu verbessern
+            suggestions = suggestions[:10]
+        except FileNotFoundError:
+            suggestions = ["Fehler: 'Daten.xlsx' nicht gefunden."]
+        except Exception as e:
+            suggestions = [f"Ein Fehler ist aufgetreten: {e}"]
+
+    return jsonify(suggestions)
+
 
 @app.route('/dokumentation', methods=['GET', 'POST'])
 def dokumentation():
@@ -184,8 +206,7 @@ def generate_pdf():
     pdf.add_page()
     pdf.create_table(entries)
     
-    # PDF im Speicher erstellen und als Download senden
-    pdf_output = pdf.output(dest='S').encode('latin1')
+    pdf_output = pdf.output(dest='S')
     return send_file(
         BytesIO(pdf_output),
         as_attachment=True,
@@ -197,14 +218,13 @@ def generate_pdf():
 
 def generate_category_chart(entries):
     """Erstellt ein Kuchendiagramm der Arbeitsstunden nach Kategorie."""
-    # Dunkles Theme für die Grafik
-    plt.style.use('dark_background')
+    plt.style.use('default')
     fig, ax = plt.subplots(figsize=(10, 6))
-    fig.patch.set_facecolor('#1a1a2e')
-    ax.set_facecolor('#1a1a2e')
+    fig.patch.set_facecolor('#f0f0f0')
+    ax.set_facecolor('#f0f0f0')
     
     if not entries:
-        ax.text(0.5, 0.5, 'Keine Daten für die Grafik vorhanden', ha='center', va='center', color='white', fontsize=12)
+        ax.text(0.5, 0.5, 'Keine Daten für die Grafik vorhanden', ha='center', va='center', color='#333333', fontsize=12)
         plt.savefig('static/img/category_chart.png', bbox_inches='tight')
         plt.close(fig)
         return
@@ -219,12 +239,11 @@ def generate_category_chart(entries):
     
     wedges, texts, autotexts = ax.pie(sizes, autopct='%1.1f%%', startangle=140, pctdistance=0.85)
     
-    # Styling für den Text im Diagramm
     for text in texts + autotexts:
-        text.set_color('white')
+        text.set_color('#333333')
     
     ax.axis('equal')
-    ax.set_title('Arbeitsstunden nach Kategorie', color='white', fontsize=16, pad=20)
+    ax.set_title('Arbeitsstunden nach Kategorie', color='#333333', fontsize=16, pad=20)
     ax.legend(wedges, labels, title="Kategorien", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
 
     plt.savefig('static/img/category_chart.png', bbox_inches='tight', pad_inches=0.1)
@@ -303,5 +322,5 @@ class PDF(FPDF):
 if __name__ == '__main__':
     with app.app_context():
         # Erstellt die Datenbank und Tabelle, falls sie nicht existieren
-        db.create_all() 
+        db.create_all()
     app.run(debug=True)
