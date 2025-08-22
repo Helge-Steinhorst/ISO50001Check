@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}Begriffsfinder{% endblock %}
+
+{% block content %}
+    <h1>Begriffsfinder</h1>
+    
+    <div class="form-container">
+        <form action="{{ url_for('begriffsfinder') }}" method="POST">
+            <div class="form-group">
+                <label for="search_term">Suchbegriff:</label>
+                <input type="search" id="search_term" name="search_term" value="{{ search_term }}" required>
+            </div>
+            <button type="submit" class="btn">Suchen</button>
+        </form>
+    </div>
+
+    {% if result %}
+    <div class="result-container">
+        <h2>Ergebnis</h2>
+        <p>{{ result }}</p>
+    </div>
+    {% endif %}
+{% endblock %}

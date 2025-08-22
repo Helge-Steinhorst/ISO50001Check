@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Zeiterfassung{% endblock %}
+
+{% block content %}
+    <h1>Dokumentation & Zeiterfassung</h1>
+
+    <div class="form-container">
+        <h2>Neuen Eintrag erstellen</h2>
+        <form action="{{ url_for('dokumentation') }}" method="POST">
+            <div class="form-group">
+                <label for="date">Datum:</label>
+                <input type="date" id="date" name="date" required>
+            </div>
+            <div class="form-group">
+                <label for="start_time">Arbeitsbeginn:</label>
+                <input type="time" id="start_time" name="start_time" required>
+            </div>
+            <div class="form-group">
+                <label for="end_time">Arbeitsende:</label>
+                <input type="time" id="end_time" name="end_time" required>
+            </div>
+            <div class="form-group">
+                <label for="category">Kategorie:</label>
+                <select id="category" name="category" required>
+                    <option value="Unproduktiv">Unproduktiv</option>
+                    <option value="Schulung">Schulung</option>
+                    <option value="Planung">Planung</option>
+                    <option value="Meeting">Meeting</option>
+                    <option value="Außendienst">Außendienst</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="project">Projekt:</label>
+                <input type="text" id="project" name="project" required>
+            </div>
+            <div class="form-group">
+                <label for="info_text">Infotext:</label>
+                <textarea id="info_text" name="info_text" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn">Speichern</button>
+        </form>
+    </div>
+
+    <div class="chart-container">
+        <h2>Auswertung</h2>
+        <img src="{{ url_for('static', filename='img/category_chart.png') }}?v={{ range(1, 1000) | random }}" alt="Kategorien-Grafik" style="width:100%; max-width:600px;">
+    </div>
+
+    <div class="table-container">
+    <h2>Gespeicherte Einträge</h2>
+    <a href="{{ url_for('generate_pdf') }}" class="btn" style="margin-bottom: 1rem;">PDF exportieren</a>
+    
+
+    <div class="table-container">
+        <h2>Gespeicherte Einträge</h2>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Start</th>
+                    <th>Ende</th>
+                    <th>Dauer (HH:MM)</th>
+                    <th>Kategorie</th>
+                    <th>Projekt</th>
+                    <th>Infotext</th>
+                    <th>Aktion</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in entries %}
+                <tr>
+                    <td>{{ entry.date.strftime('%d.%m.%Y') }}</td>
+                    <td>{{ entry.start_time.strftime('%H:%M') }}</td>
+                    <td>{{ entry.end_time.strftime('%H:%M') }}</td>
+                    <td>{{ entry.duration_str }}</td>
+                    <td>{{ entry.category }}</td>
+                    <td>{{ entry.project }}</td>
+                    <td>{{ entry.info_text }}</td>
+                    <td>
+                        <a href="{{ url_for('delete_entry', entry_id=entry.id) }}" 
+                           class="btn btn-danger" 
+                           onclick="return confirm('Möchtest du diesen Eintrag wirklich löschen?');">Löschen</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8">Noch keine Einträge vorhanden.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
