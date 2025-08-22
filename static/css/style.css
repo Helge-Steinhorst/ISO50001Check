@@ -14,7 +14,7 @@ body {
     background-color: var(--primary-bg-color);
     color: var(--primary-text-color);
     margin: 0;
-    padding-top: 70px; /* Platz für die fixe Navbar */
+    padding-top: 70px;
 }
 
 /* --- Navbar --- */
@@ -51,7 +51,7 @@ body {
 }
 
 .navbar-logo img {
-    height: 50px; /* Logo Höhe anpassen */
+    height: 50px;
     width: auto;
     margin-right: 10px;
 }

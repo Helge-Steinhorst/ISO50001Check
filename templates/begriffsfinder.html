@@ -9,7 +9,8 @@
         <form action="{{ url_for('begriffsfinder') }}" method="POST">
             <div class="form-group">
                 <label for="search_term">Suchbegriff:</label>
-                <input type="search" id="search_term" name="search_term" value="{{ search_term }}" required>
+                <input type="search" id="search_term" name="search_term" autocomplete="off" value="{{ search_term }}" required>
+                
                 <ul id="suggestions-list" class="suggestions-list"></ul>
             </div>
             <button type="submit" class="btn">Suchen</button>

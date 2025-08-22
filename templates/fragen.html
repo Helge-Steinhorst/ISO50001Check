@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Fragen & Abstimmungen{% endblock %}
+
+{% block content %}
+    <h1>Fragen & Abstimmungen</h1>
+
+    <div class="form-container">
+        <h2>Neue Frage erstellen</h2>
+        <form action="{{ url_for('fragen') }}" method="POST">
+            <div class="form-group">
+                <label for="new_question">Frage:</label>
+                <input type="text" id="new_question" name="new_question" placeholder="Gib hier deine Frage ein..." required>
+            </div>
+            <div class="form-group">
+                <label for="options">Antwortoptionen (kommasepariert):</label>
+                <input type="text" id="options" name="options" placeholder="z.B. Ja,Nein,Vielleicht" required>
+            </div>
+            <button type="submit" class="btn">Frage erstellen</button>
+        </form>
+    </div>
+
+    {% if fragen %}
+    <div class="form-container">
+        <h2>Abstimmungen</h2>
+        <form action="{{ url_for('fragen') }}" method="POST">
+            {% for frage in fragen %}
+                <div class="question-item">
+                    <h3>{{ frage.question }}</h3>
+                    <div class="form-group">
+                        {% set options = frage.options.split(',') %}
+                        {% for option in options %}
+                        <label>
+                            <input type="radio" name="answer_{{ frage.id }}" value="{{ option.strip() }}" {% if frage.answer == option.strip() %}checked{% endif %} required> {{ option.strip() }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                    <button type="submit" formaction="{{ url_for('delete_question', question_id=frage.id) }}" formmethod="POST" class="btn btn-danger">Frage löschen</button>
+                </div>
+            {% endfor %}
+            <button type="submit" class="btn">Antworten speichern</button>
+        </form>
+    </div>
+
+    <div class="form-container">
+        <h2>Daten exportieren</h2>
+        <form action="{{ url_for('download_filtered_pdf') }}" method="POST">
+            <button type="submit" class="btn">Alle Abstimmungen getroffen</button>
+        </form>
+    </div>
+    {% else %}
+    <div class="form-container">
+        <p>Noch keine Fragen erstellt.</p>
+    </div>
+    {% endif %}
+
+    <style>
+        .question-item {
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        .question-item h3 {
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            color: var(--primary-text-color);
+        }
+        .question-item .form-group {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+        .question-item .btn-danger {
+            margin-top: 1rem;
+        }
+    </style>
+
+{% endblock %}
